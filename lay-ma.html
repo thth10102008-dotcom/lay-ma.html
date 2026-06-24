@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Nhận Nhiệm Vụ</title>
+    <style>
+        body { font-family: sans-serif; background: #F4F7FE; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 16px; text-align: center; width: 300px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .timer { font-size: 50px; font-weight: bold; color: red; margin: 20px 0; }
+        .btn { padding: 15px; background: #CBD5E1; color: white; border: none; border-radius: 8px; font-weight: bold; width: 100%; cursor: not-allowed; transition: 0.3s;}
+        .btn.active { background: #10B981; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h3 style="color: #1E3A8A; margin-top:0;">HỆ THỐNG XÁC NHẬN</h3>
+        <p id="status-text" style="color:#64748B;">Vui lòng đợi hết giờ để hệ thống cộng tiền...</p>
+        <div class="timer" id="countdown-timer">30</div>
+        <button class="btn" id="btn-get-reward" disabled>ĐANG XÁC THỰC...</button>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx1hP042D5mQFWTxqaVXDVDvCFX5clpUJ4Ej1tf4d26H5XvPptMRwEqPOE86u3NqwbK/exec';
+        
+        const currentUser = localStorage.getItem('remembered_user');
+        const urlParams = new URLSearchParams(window.location.search);
+        const taskId = urlParams.get('taskId');
+
+        const timerDisplay = document.getElementById('countdown-timer');
+        const btnReward = document.getElementById('btn-get-reward');
+        const statusText = document.getElementById('status-text');
+
+        if (!currentUser) {
+            statusText.innerText = "⚠️ LỖI: Bạn chưa đăng nhập ở trang chủ! Hãy mở trang chủ đăng nhập trước.";
+            statusText.style.color = "red";
+            timerDisplay.style.display = 'none';
+        } else if (!taskId) {
+            statusText.innerText = "⚠️ LỖI: Link nhiệm vụ bị hỏng!";
+            statusText.style.color = "red";
+            timerDisplay.style.display = 'none';
+        } else {
+            let secondsLeft = 30; // Chờ 30 giây
+            const interval = setInterval(() => {
+                secondsLeft--; timerDisplay.innerText = secondsLeft;
+                if (secondsLeft <= 0) {
+                    clearInterval(interval); timerDisplay.style.display = 'none';
+                    btnReward.innerText = "NHẤN VÀO ĐÂY ĐỂ NHẬN LÚA";
+                    btnReward.classList.add('active'); btnReward.disabled = false;
+                }
+            }, 1000);
+
+            btnReward.onclick = function() {
+                btnReward.innerText = "ĐANG XỬ LÝ..."; btnReward.classList.remove('active'); btnReward.disabled = true;
+                
+                fetch(`${SCRIPT_URL}?action=autoComplete&username=${encodeURIComponent(currentUser)}&taskId=${encodeURIComponent(taskId)}`)
+                .then(res => res.json()).then(data => {
+                    if(data.status === 'success') {
+                        statusText.innerText = "🎉 " + data.message;
+                        statusText.style.color = "#10B981"; statusText.style.fontWeight = "bold";
+                        btnReward.innerText = "ĐÃ NHẬN! VUI LÒNG ĐÓNG TAB NÀY";
+                        btnReward.style.background = "#E2E8F0"; btnReward.style.color = "black";
+                    } else {
+                        alert(data.message); 
+                        btnReward.innerText = "LỖI, THỬ LẠI"; btnReward.classList.add('active'); btnReward.disabled = false;
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
